@@ -8,6 +8,8 @@ import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaWebView;
 import org.apache.cordova.PluginResult;
 
+import android.media.AudioManager;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 
@@ -114,7 +116,7 @@ public class SpeechRecognition extends CordovaPlugin {
 
         mLastPartialResults = new JSONArray();
         Boolean showPartial = args.optBoolean(3, false);
-        Boolean showPopup = args.optBoolean(4, true);
+        Boolean showPopup = args.optBoolean(4, false);
         startListening(lang, matches, prompt,showPartial, showPopup);
 
         return true;
@@ -164,18 +166,23 @@ public class SpeechRecognition extends CordovaPlugin {
   private void startListening(String language, int matches, String prompt, final Boolean showPartial, Boolean showPopup) {
     Log.d(LOG_TAG, "startListening() language: " + language + ", matches: " + matches + ", prompt: " + prompt + ", showPartial: " + showPartial + ", showPopup: " + showPopup);
 
+    AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+    audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
+    
     final Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
     intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
             RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
     intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, language);
-    intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, matches);
+    intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+    intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 2000);
+    intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3000);
     intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE,
             activity.getPackageName());
     intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, showPartial);
     intent.putExtra("android.speech.extra.DICTATION_MODE", showPartial);
 
     if (prompt != null) {
-      intent.putExtra(RecognizerIntent.EXTRA_PROMPT, prompt);
+      intent.putExtra(RecognizerIntent.EXTRA_PROMPT, false);
     }
 
     if (showPopup) {
@@ -289,23 +296,8 @@ public class SpeechRecognition extends CordovaPlugin {
     }
 
     @Override
-    public void onPartialResults(Bundle bundle) {
-      ArrayList<String> matches = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-      Log.d(LOG_TAG, "SpeechRecognitionListener partialResults: " + matches);
-      JSONArray matchesJSON = new JSONArray(matches);
-      try {
-        if (matches != null
-                && matches.size() > 0
-                        && !mLastPartialResults.equals(matchesJSON)) {
-          mLastPartialResults = matchesJSON;
-          PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, matchesJSON);
-          pluginResult.setKeepCallback(true);
-          callbackContext.sendPluginResult(pluginResult);
-        }
-      } catch (Exception e) {
-        e.printStackTrace();
-        callbackContext.error(e.getMessage());
-      }
+    public void onPartialResults(Bundle partialResults) {
+      
     }
 
     @Override
