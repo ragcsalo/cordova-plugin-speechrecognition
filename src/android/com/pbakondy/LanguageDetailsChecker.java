@@ -53,3 +53,4 @@ public class LanguageDetailsChecker extends BroadcastReceiver {
         return languagePreference;
     }
 }
+
