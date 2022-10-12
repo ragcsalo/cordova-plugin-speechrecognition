@@ -1,3 +1,4 @@
+cordova.define("cordova-plugin-speechrecognition.SpeechRecognition", function(require, exports, module) {
 module.exports = {
   isRecognitionAvailable: function(successCallback, errorCallback) {
     cordova.exec(successCallback, errorCallback, 'SpeechRecognition', 'isRecognitionAvailable', []);
@@ -9,6 +10,9 @@ module.exports = {
   stopListening: function(successCallback, errorCallback) {
     cordova.exec(successCallback, errorCallback, 'SpeechRecognition', 'stopListening', []);
   },
+  restoreVolume: function(successCallback, errorCallback) {
+    cordova.exec(successCallback, errorCallback, 'SpeechRecognition', 'restoreVolume', []);
+  },
   getSupportedLanguages: function(successCallback, errorCallback) {
     cordova.exec(successCallback, errorCallback, 'SpeechRecognition', 'getSupportedLanguages', []);
   },
@@ -19,3 +23,5 @@ module.exports = {
     cordova.exec(successCallback, errorCallback, 'SpeechRecognition', 'requestPermission', []);
   }
 };
+
+});
