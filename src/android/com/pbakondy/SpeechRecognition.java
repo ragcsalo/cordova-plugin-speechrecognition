@@ -2,32 +2,27 @@
 
 package com.pbakondy;
 
+import android.Manifest;
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.media.AudioManager;
+import android.os.Build;
+import android.os.Bundle;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.util.Log;
+import android.view.View;
+
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaWebView;
 import org.apache.cordova.PluginResult;
-
-import android.media.AudioManager;
-
 import org.json.JSONArray;
 import org.json.JSONException;
-
-import android.app.Activity;
-import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-
-import android.Manifest;
-import android.os.Build;
-import android.os.Bundle;
-
-import android.speech.RecognitionListener;
-import android.speech.RecognizerIntent;
-import android.speech.SpeechRecognizer;
-
-import android.util.Log;
-import android.view.View;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +37,7 @@ public class SpeechRecognition extends CordovaPlugin {
   private static final String IS_RECOGNITION_AVAILABLE = "isRecognitionAvailable";
   private static final String START_LISTENING = "startListening";
   private static final String STOP_LISTENING = "stopListening";
+  private static final String RESTORE_VOLUME = "restoreVolume";
   private static final String GET_SUPPORTED_LANGUAGES = "getSupportedLanguages";
   private static final String HAS_PERMISSION = "hasPermission";
   private static final String REQUEST_PERMISSION = "requestPermission";
@@ -141,6 +137,14 @@ public class SpeechRecognition extends CordovaPlugin {
         return true;
       }
 
+      if (RESTORE_VOLUME.equals(action)) {
+        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);
+        audioManager.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_UNMUTE, 0);
+        hasAudioPermission();
+        return true;
+      }
+
       if (HAS_PERMISSION.equals(action)) {
         hasAudioPermission();
         return true;
@@ -168,14 +172,15 @@ public class SpeechRecognition extends CordovaPlugin {
 
     AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
     audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
-    
+    audioManager.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_MUTE, 0);
+
     final Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
     intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
             RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
     intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, language);
     intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
-    intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 2000);
-    intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3000);
+    intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 3000);
+    intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 10000);
     intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE,
             activity.getPackageName());
     intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, showPartial);
@@ -272,16 +277,21 @@ public class SpeechRecognition extends CordovaPlugin {
 
   private class SpeechRecognitionListener implements RecognitionListener {
 
+    public ArrayList<String> eredmenyek = new ArrayList<>();
+
     @Override
     public void onBeginningOfSpeech() {
+      Log.d(LOG_TAG, "onBeginningOfSpeech()");
     }
 
     @Override
     public void onBufferReceived(byte[] buffer) {
+      Log.d(LOG_TAG, "onBufferReceived()");
     }
 
     @Override
     public void onEndOfSpeech() {
+      Log.d(LOG_TAG, "onEndOfSpeech()");
     }
 
     @Override
@@ -297,7 +307,11 @@ public class SpeechRecognition extends CordovaPlugin {
 
     @Override
     public void onPartialResults(Bundle partialResults) {
-      
+      Log.d(LOG_TAG, "onPartialResults()");
+      Log.d(LOG_TAG, "SpeechRecognitionListener partial results: " + partialResults);
+      ArrayList<String> matches = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+      Log.d(LOG_TAG, "SpeechRecognitionListener partial matches: " + matches);
+      eredmenyek = matches;
     }
 
     @Override
@@ -307,15 +321,16 @@ public class SpeechRecognition extends CordovaPlugin {
 
     @Override
     public void onResults(Bundle results) {
-      ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-      Log.d(LOG_TAG, "SpeechRecognitionListener results: " + matches);
-      try {
-        JSONArray jsonMatches = new JSONArray(matches);
-        callbackContext.success(jsonMatches);
-      } catch (Exception e) {
-        e.printStackTrace();
-        callbackContext.error(e.getMessage());
-      }
+      Log.d(LOG_TAG, "SpeechRecognitionListener results: " + results);
+      ArrayList<String> matches = eredmenyek;
+      Log.d(LOG_TAG, "SpeechRecognitionListener matches: " + matches);
+        try {
+          JSONArray jsonMatches = new JSONArray(matches);
+          callbackContext.success(jsonMatches);
+        } catch (Exception e) {
+          e.printStackTrace();
+          callbackContext.error(e.getMessage());
+        }
     }
 
     @Override
