@@ -3,6 +3,17 @@
 
 @interface SpeechRecognition : CDVPlugin
 
+@property (strong, nonatomic) SFSpeechRecognizer *speechRecognizer;
+@property (strong, nonatomic) AVAudioEngine *audioEngine;
+@property (strong, nonatomic) SFSpeechAudioBufferRecognitionRequest *recognitionRequest;
+@property (strong, nonatomic) SFSpeechRecognitionTask *recognitionTask;
+
+// State management for continuous recognition
+@property (strong, nonatomic) NSMutableString *accumulatedTranscript;
+@property (strong, nonatomic) NSTimer *loopTimer;
+@property (strong, nonatomic) NSTimer *safetyTimeoutTimer;
+@property (strong, nonatomic) NSString *currentCallbackId;
+
 - (void)isRecognitionAvailable:(CDVInvokedUrlCommand*)command;
 - (void)startListening:(CDVInvokedUrlCommand*)command;
 - (void)stopListening:(CDVInvokedUrlCommand*)command;
